@@ -236,13 +236,7 @@ def phase_fold_lk(n, tic_id,T0,period,catalog, shift = False):
   local_lk = 2.0 * (local_lk / np.abs(local_lk.flux.min()))
   local_lk = local_lk.remove_nans()
 
-  lc_2 = folded_lightcurve(n, tic_id, period, T0 + 0.25 * period)
-  shifted = lc_2.bin(n_bins=201) 
-  shifted = 2.0 * (half_phase / np.abs(half_phase.flux.min()))
-  shifted = shifted.remove_nans()
-
   half_even = zoom_lk.bin(n_bins=81)  
-
   lc_3 = folded_lightcurve(n, tic_id, period, t0 - 0.5 * period)
   mask_3 = np.abs(lc_3.phase) < (2.0*norm_duration)
   zoom_lc = lc_3[mask_3]
@@ -252,11 +246,7 @@ def phase_fold_lk(n, tic_id,T0,period,catalog, shift = False):
   flux_net = np.concatenate((half_odd.flux, half_even.flux))
   concatenated = lk.LightCurve(time_net, flux_net)
   half_phase = 2.0 * (concatenated / np.abs(concatenated.flux.min()))
-  
-  if shift == True:
-    return global_view, local_lk, shifted
-  else:
-    return global_view, local_lk, half_phase
+  return global_view, local_lk, half_phase
 
 def final_lk(n, tic_id,catalog):
   data = stellar_params(n)
@@ -307,7 +297,8 @@ def dataset(files,stellar,batchsize=64):
     features = {'tic_id': tf.io.FixedLenFeature([], tf.int64, default_value=0),'global_view': tf.io.VarLenFeature(tf.float32),
                                     'local_view': tf.io.VarLenFeature(tf.float32),'half_phase_view': tf.io.VarLenFeature(tf.float32),
                                     'disposition': tf.io.FixedLenFeature([], tf.string, default_value='')}
-    stellar_transit_features = {i: tf.io.FixedLenFeature([1], tf.float32) for i in stellar}
+    for i in stellar:
+      stellar_transit_features = {i: tf.io.FixedLenFeature([1], tf.float32)}
     features.update(stellar_transit_features)
     parsing = tf.io.parse_single_example(example_proto, features)
     return parsing
@@ -389,6 +380,7 @@ def remove_nan(x):
 def process(data,stellar):
   val = iter(data)
   item = next(val)
+  m=1
   global_array = tf.reshape(tf.sparse.to_dense(item['global_view']), [m, 201, 1])
   local_array = tf.reshape(tf.sparse.to_dense(item['local_view']), [m, 81, 1])
   half_array = tf.reshape(tf.sparse.to_dense(item['half_phase_view']), [m, 162, 1])
@@ -434,5 +426,6 @@ def training(files, param_keys):
 files = []
 for n in [6,21,22,23,24,25,26]:
   files.append(read_csv(n)['Filename'])
+  
 training(files,param_keys)
 
