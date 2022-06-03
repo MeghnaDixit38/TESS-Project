@@ -107,7 +107,7 @@ def fits_data(n):
             flatten_lc, trend_lc = flatten(time, flux, window_length=0.5, method='biweight', return_trend=True)
             flux = sigma_clip(flatten_lc, sigma_upper=3, sigma_lower=20)
             model = tls.transitleastsquares(time, flux)
-            results = model.power(u=ab,oversampling_factor=5)
+            results = model.power(u=ab)
         else:
             period_2 = 13.5
             tdur = t14(R_s=radius, M_s=mass, P=period_2, small_planet=False)
